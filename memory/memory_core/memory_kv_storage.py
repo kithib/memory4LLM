@@ -22,7 +22,6 @@ class KeyValueMemoryStorage:
     #usage_count true:count memory usage , false:not count memory usage
     def __init__(self,usage_count:bool):
         self.usage_count = usage_count
-        
         self.key = [] # vector in it
         self.value = []
         if usage_count:
@@ -57,6 +56,11 @@ class KeyValueMemoryStorage:
             raise RuntimeError('I did not count usage!')
         else:
             return self.use_count
+    def find_max_usage(self):
+        usage = self.get_usage()  
+        max_value = max(usage)  
+        max_index = usage.index(max_value) 
+        return max_index
     def remove_obsolete_features(self, max_size: int):  
         usage = self.get_usage()  
         # 获取最大的n个元素的索引,如果有重复的元素，取前x个
@@ -93,14 +97,17 @@ class KeyValueMemoryStorage:
 
     def value(self):
         return self.value
+def model_init(path):
+    model = Bert4Vec(model_name_or_path=path)
+    return model 
 
 def get_embedding_sentences_bert4vec(model,sentences):
     a_vecs = model.encode(sentences, convert_to_numpy=True, normalize_to_unit=False, batch_size=1)
     embeddings = a_vecs / (a_vecs ** 2).sum(axis=1, keepdims=True) ** 0.5
     return embeddings
 if __name__ == "__main__":
-    model_name_or_path = '/home/kit/clustering4server_simple/resource/roformer-sim-small-chinese'
-    model = Bert4Vec(model_name_or_path=model_name_or_path) 
+    path = '/home/kit/clustering4server_simple/resource/roformer-sim-small-chinese'
+    model = model_init(path)
     key_list = ["你喜欢旅游吗？","你曾经去过哪些地方旅行？","听起来很不错！你最喜欢的旅行经历是什么？"]
     value_list = ["我很喜欢旅游。我认为旅行可以让我放松身心，并学习到很多不同的文化。","我曾经去过欧洲和亚洲的一些国家。我很喜欢意大利的威尼斯，那里真的很美。","我的一次旅行经历是在中国的西藏。那里的自然风光和人文景观令人难以忘怀。"]
     work_memory = KeyValueMemoryStorage(True)

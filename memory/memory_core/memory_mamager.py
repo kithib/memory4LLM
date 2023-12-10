@@ -3,13 +3,13 @@ from typing import List
 from heapq import nlargest
 import numpy as np  
 from bert4vec import Bert4Vec
-from memory_kv_storage import KeyValueMemoryStorage
+from memory_kv_storage import KeyValueMemoryStorage,get_embedding_sentences_bert4vec,model_init
 
-# main function  统一管理三种记忆
-# 1.concat long-term memory value/key  &  work memory value/key
-# 2.相似度计算 （key 和 query ）,shape (1,384)
-# 3.根据相似度的最大值找到合适的value
-# 4.更新敏感记忆（sensor memory）
+# main function manages three types of memory in a unified manner
+# 1.concat long-term memory value/key & work memory value/key
+# 2. Similarity calculation (key and query), shape (1,384)
+# 3. Find the appropriate value based on the maximum value of similarity
+# 4.update memory
 class MemoryManager:
     def __init__(self,sensor_memory:list,work_memory:KeyValueMemoryStorage,longterm_memory:KeyValueMemoryStorage):
         self.sensor_memory = sensor_memory
@@ -17,14 +17,17 @@ class MemoryManager:
         self.longterm_memory = longterm_memory
         self.key = []
         self.value = []
+        self.value_selected_thisRound = []
+        self.max_work_memory = 5
+        self.max_longterm_memory = 5
 
     def concat_two_list(self,listwork,listlong):
-        # 将两个列表转换为numpy数组 
+        # Convert two lists to numpy arrays 
         arr1 = np.array(listwork) 
         arr2 = np.array(listlong)  
-        # 使用numpy的concatenate函数连接两个数组  
+        # Use numpy's concatenate function to connect two arrays 
         arr3 = np.concatenate((arr1, arr2))
-        # 转换回列表（如果需要）  
+        # Convert back to list  
         listall = arr3.tolist()  
         return listall
     
@@ -40,16 +43,37 @@ class MemoryManager:
         for index in max_indices:
             result.append((index, cosine_similarities[index]))
         return result 
-    #n 可以控制选前几个
+    #n can control the selection of the first few
     def find_value(self,query,n:int = 1):
         result = self.find_max_cosine(self.key,query,n)
         index_list = []
         for item in result:
             index_list.append(item[0])
         value_list = self.value[index_list]
-        return value_list
-    
+        self.value_selected_thisRound = value_list
+    def work2longterm(self):
+        if len(self.work_memory.key) > self.max_work_memory:
+            max_index = self.work_memory.find_max_usage()
+            self.longterm_memory.add(self.work_memory.key[max_index],self.work_memory.value[max_index])
+            del self.work_memory.key[max_index]  
+            del self.work_memory.value[max_index]  
+    #Set workmemoey to be updated every 3 times
+    def update_memory(self,answer,count,new_key,new_value):
 
+        #sensor memory update
+        model = model_init('/home/kit/clustering4server_simple/resource/roformer-sim-small-chinese')
+        embedding_answer = get_embedding_sentences_bert4vec(model,answer)
+        generate_feature = sum(self.value_selected_thisRound) / len(self.value_selected_thisRound)
+        self.sensor_memory = (embedding_answer + generate_feature) / 2
+
+        #work memory and long term memory update
+        if count % 3 == 0:
+            self.work_memory.add(new_key,new_value)
+            self.work2longterm()
+            self.longterm_memory.remove_obsolete_features(self.max_longterm_memory)
+
+if __name__ == "__main__":
+    memorymanger = MemoryManager()
 
         
 
