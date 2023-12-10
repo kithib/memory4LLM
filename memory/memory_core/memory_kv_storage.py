@@ -105,9 +105,10 @@ if __name__ == "__main__":
     value_list = ["我很喜欢旅游。我认为旅行可以让我放松身心，并学习到很多不同的文化。","我曾经去过欧洲和亚洲的一些国家。我很喜欢意大利的威尼斯，那里真的很美。","我的一次旅行经历是在中国的西藏。那里的自然风光和人文景观令人难以忘怀。"]
     work_memory = KeyValueMemoryStorage(True)
     longterm_memory = KeyValueMemoryStorage(False)
-    #key[128,1],value[512,1]
+    #key (1,384)  value (1,384)
     for i in range(len(key_list)):
         work_memory.add(get_embedding_sentences_bert4vec(model,[key_list[i]]),get_embedding_sentences_bert4vec(model,[value_list[i]]))
+    print(type(work_memory.key))
     work_memory.update_usage(1)
     work_memory.update_usage(1)
     work_memory.update_usage(1)
@@ -118,5 +119,6 @@ if __name__ == "__main__":
     print(work_memory.get_usage(),len(work_memory.key))
     work_memory.remove_obsolete_features(2)
     print(work_memory.get_usage(),len(work_memory.key))
+  
 
         
