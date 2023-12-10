@@ -116,13 +116,12 @@ if __name__ == "__main__":
     for i in range(len(key_list)):
         work_memory.add(get_embedding_sentences_bert4vec(model,[key_list[i]]),get_embedding_sentences_bert4vec(model,[value_list[i]]))
     print(type(work_memory.key))
-    work_memory.update_usage(1)
-    work_memory.update_usage(1)
-    work_memory.update_usage(1)
-    work_memory.update_usage(0)
-    work_memory.update_usage(0)
-    work_memory.update_usage(2)
-    work_memory.update_usage(2)
+    for i in range(3):
+        work_memory.update_usage(1)
+    for i in range(2):
+        work_memory.update_usage(0)
+    for i in range(2):
+        work_memory.update_usage(2)
     print(work_memory.get_usage(),len(work_memory.key))
     work_memory.remove_obsolete_features(2)
     print(work_memory.get_usage(),len(work_memory.key))

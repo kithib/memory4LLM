@@ -64,7 +64,7 @@ class MemoryManager:
         model = model_init('/home/kit/clustering4server_simple/resource/roformer-sim-small-chinese')
         embedding_answer = get_embedding_sentences_bert4vec(model,answer)
         generate_feature = sum(self.value_selected_thisRound) / len(self.value_selected_thisRound)
-        self.sensor_memory = (embedding_answer + generate_feature) / 2
+        self.sensor_memory = (self.sensor_memory + embedding_answer + generate_feature) / 3
 
         #work memory and long term memory update
         if count % 3 == 0:
