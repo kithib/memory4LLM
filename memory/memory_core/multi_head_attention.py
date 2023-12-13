@@ -3,6 +3,42 @@ import torch
 from torch import nn
 from d2l import torch as d2l
 
+##   点积注意力
+#@save
+class DotProductAttention(nn.Module):
+    """缩放点积注意力"""
+    def __init__(self, dropout, **kwargs):
+        super(DotProductAttention, self).__init__(**kwargs)
+        self.dropout = nn.Dropout(dropout)
+
+    # queries的形状：(batch_size，查询的个数，d)
+    # keys的形状：(batch_size，“键－值”对的个数，d)
+    # values的形状：(batch_size，“键－值”对的个数，值的维度)
+    # valid_lens的形状:(batch_size，)或者(batch_size，查询的个数)
+    def forward(self, queries, keys, values, valid_lens=None):
+        d = queries.shape[-1]
+        # 设置transpose_b=True为了交换keys的最后两个维度
+        scores = torch.bmm(queries, keys.transpose(1,2)) / math.sqrt(d)
+        self.attention_weights = masked_softmax(scores, valid_lens)
+        return torch.bmm(self.dropout(self.attention_weights), values)
+    
+#@save
+def masked_softmax(X, valid_lens):
+    """通过在最后一个轴上掩蔽元素来执行softmax操作"""
+    # X:3D张量，valid_lens:1D或2D张量
+    if valid_lens is None:
+        return nn.functional.softmax(X, dim=-1)
+    else:
+        shape = X.shape
+        if valid_lens.dim() == 1:
+            valid_lens = torch.repeat_interleave(valid_lens, shape[1])
+        else:
+            valid_lens = valid_lens.reshape(-1)
+        # 最后一轴上被掩蔽的元素使用一个非常大的负值替换，从而其softmax输出为0
+        X = d2l.sequence_mask(X.reshape(-1, shape[-1]), valid_lens,
+                              value=-1e6)
+        return nn.functional.softmax(X.reshape(shape), dim=-1)
+
 ##  多头注意力的实现
 #@save
 class MultiHeadAttention(nn.Module):
@@ -11,7 +47,7 @@ class MultiHeadAttention(nn.Module):
                  num_heads, dropout, bias=False, **kwargs):
         super(MultiHeadAttention, self).__init__(**kwargs)
         self.num_heads = num_heads
-        self.attention = d2l.DotProductAttention(dropout)
+        self.attention = DotProductAttention(dropout)
         self.W_q = nn.Linear(query_size, num_hiddens, bias=bias)
         self.W_k = nn.Linear(key_size, num_hiddens, bias=bias)
         self.W_v = nn.Linear(value_size, num_hiddens, bias=bias)
@@ -81,7 +117,7 @@ if __name__ == "__main__":
                                num_hiddens, num_heads, 0.5)
     print(attention.eval())
     batch_size, num_queries = 2, 4
-    num_kvpairs, valid_lens =  6, torch.tensor([3, 2])
+    num_kvpairs, valid_lens =  6, torch.tensor([3, 4])
     X = torch.ones((batch_size, num_queries, num_hiddens)) #(2,4,100)
     Y = torch.ones((batch_size, num_kvpairs, num_hiddens)) #(2,6,100)
     print(attention(X, Y, Y, valid_lens).shape)  # 这次调用的是forward函数
