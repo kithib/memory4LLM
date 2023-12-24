@@ -103,4 +103,3 @@ if __name__ == "__main__":
     decoder = TransformerDecoder(
     200, 24, 24, 24, 24, [100, 24], 24, 48, 8, 2, 0.5)
     print(decoder.eval())
-    #print(decoder(torch.ones((2, 100), dtype=torch.long), valid_lens).shape)
