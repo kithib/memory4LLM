@@ -111,6 +111,30 @@ def transpose_output(X, num_heads):
     # 输出的形状:(batch_size,查询或者“键－值”对的个数,num_hiddens)
     return X.reshape(X.shape[0], X.shape[1], -1)
 
+#@save
+class PositionWiseFFN(nn.Module):
+    """基于位置的前馈网络"""
+    def __init__(self, ffn_num_input, ffn_num_hiddens, ffn_num_outputs,
+                 **kwargs):
+        super(PositionWiseFFN, self).__init__(**kwargs)
+        self.dense1 = nn.Linear(ffn_num_input, ffn_num_hiddens)
+        self.relu = nn.ReLU()
+        self.dense2 = nn.Linear(ffn_num_hiddens, ffn_num_outputs)
+
+    def forward(self, X):
+        return self.dense2(self.relu(self.dense1(X)))
+    
+#@save
+class AddNorm(nn.Module):
+    """残差连接后进行层规范化"""
+    def __init__(self, normalized_shape, dropout, **kwargs):
+        super(AddNorm, self).__init__(**kwargs)
+        self.dropout = nn.Dropout(dropout)
+        self.ln = nn.LayerNorm(normalized_shape)
+
+    def forward(self, X, Y):
+        return self.ln(self.dropout(Y) + X)
+
 if __name__ == "__main__":
     num_hiddens, num_heads = 100, 5
     attention = MultiHeadAttention(num_hiddens, num_hiddens, num_hiddens,
@@ -121,3 +145,13 @@ if __name__ == "__main__":
     X = torch.ones((batch_size, num_queries, num_hiddens)) #(2,4,100)
     Y = torch.ones((batch_size, num_kvpairs, num_hiddens)) #(2,6,100)
     print(attention(X, Y, Y, valid_lens).shape)  # 这次调用的是forward函数
+
+
+    ffn = PositionWiseFFN(4, 4, 8)
+    ffn.eval()
+    print(ffn(torch.ones((2, 3, 4))).size())
+
+
+    add_norm = AddNorm([3, 4], 0.5)
+    add_norm.eval()
+    print(add_norm(torch.ones((2, 3, 4)), torch.ones((2, 3, 4))).shape)
