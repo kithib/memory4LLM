@@ -136,7 +136,7 @@ class AddNorm(nn.Module):
         return self.ln(self.dropout(Y) + X)
 
 if __name__ == "__main__":
-    num_hiddens, num_heads = 100, 5
+    num_hiddens, num_heads = 200, 5
     attention = MultiHeadAttention(num_hiddens, num_hiddens, num_hiddens,
                                num_hiddens, num_heads, 0.5)
     print(attention.eval())
@@ -148,10 +148,10 @@ if __name__ == "__main__":
 
 
     ffn = PositionWiseFFN(4, 4, 8)
-    ffn.eval()
+    print(ffn.eval())
     print(ffn(torch.ones((2, 3, 4))).size())
 
 
     add_norm = AddNorm([3, 4], 0.5)
-    add_norm.eval()
+    print(add_norm.eval())
     print(add_norm(torch.ones((2, 3, 4)), torch.ones((2, 3, 4))).shape)
